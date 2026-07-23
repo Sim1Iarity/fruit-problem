@@ -21,9 +21,9 @@ $$
 
 ## Completeness
 - Range of the database: 1 - 10,000
-- Completed data: 9,982 / 10,000 (99.82%)
+- Completed data: 9,988 / 10,000 (99.88%)
 - Saturated: yes
-- Verification against 2-Selmer group bounds: **no** (missing generators are possible)
+- Verification against 2-Selmer group bounds: 5,000 / 10,000 (50.00%)
 
 ## File Structure
 - [cubic.gp](cubic.gp): PARI/GP engine for rank bounds, isogeny mappings, and solution transformations.
