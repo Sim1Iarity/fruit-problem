@@ -21,7 +21,7 @@ $$
 
 ## Completeness
 - Range of the database: 1 - 10,000
-- Completed data: 9,988 / 10,000 (99.88%)
+- Completed data: 9,993 / 10,000 (99.93%)
 - Saturated: yes
 - Verification against 2-Selmer group bounds: 5,000 / 10,000 (50.00%)
 
