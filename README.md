@@ -20,15 +20,15 @@ $$
 - When the conductor is small, and analytic calculation is cheap, PARI/GP `ellheegner` is used to compute the generators.
 
 ## Completeness
-- Range of the database: 1 - 10,000
-- Completed data: 9,993 / 10,000 (99.93%)
+- Range of the database: 1 - 100,000
+- Completed data: 68,055 / 100,000 (68.06%)
 - Saturated: yes
-- Verification against 2-Selmer group bounds: 5,000 / 10,000 (50.00%)
+- Verification against 2-Selmer group bounds: 5,000 / 100,000 (5.00%)
 
 ## File Structure
 - [cubic.gp](cubic.gp): PARI/GP engine for rank bounds, isogeny mappings, and solution transformations.
 - [cubic_descent.m](cubic_descent.m): Magma script for higher-degree descents.
-- [cubic_db.txt](cubic_db.txt): The compiled dataset for $N \in [1,10^4]$.
+- [cubic_db.txt](cubic_db.txt): The compiled dataset for $N \in [1,10^5]$.
 
 ## License
 - **Code:** GPL-3.0
