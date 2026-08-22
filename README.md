@@ -24,6 +24,7 @@ $$
 - Completed data: 9,993 / 10,000 (99.93%)
 - Saturated: yes
 - Verification against 2-Selmer group bounds: 5,000 / 10,000 (50.00%)
+- Navigate to the `100000` branch for data up to $n=10^5$
 
 ## File Structure
 - [cubic.gp](cubic.gp): PARI/GP engine for rank bounds, isogeny mappings, and solution transformations.
