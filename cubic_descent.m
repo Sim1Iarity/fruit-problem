@@ -80,10 +80,39 @@ map6 := function(n, P)
     return SolveIsogeny2(mkc(n), mkc2(n), P_mkc2);
 end function;
 
+MyTwoDescent := function(E : RemoveGens:=[])
+    S2, S2map := TwoSelmerGroup(E : RemoveTorsion, RemoveGens:=RemoveGens);
+    S2elts := [s : s in S2 | not IsIdentity(s)];
+    TD := [];
+    TDmaps := [* *];
+    for s in S2elts do 
+        C2, C2toE := TwoCover(s @@ S2map : E:=E);
+        Append(~TD, C2);
+        Append(~TDmaps, C2toE);
+    end for;
+    n := Ngens(S2);
+    inds := [Index(S2elts, S2.i) : i in [1..n]];
+    CTmat := ZeroMatrix(GF(2), n, n);
+    for i in [1..n], j in [1..i-1] do 
+        ii := inds[i];
+        jj := inds[j];
+        CTij := CasselsTatePairing(TD[ii], TD[jj]);
+        CTmat[i,j] := CTij;  
+        CTmat[j,i] := CTij;
+    end for; 
+    printf "The Cassels-Tate pairing on Sel(2,E)/E[2] is\n%o\n", CTmat;
+    error if not IsEven(Rank(CTmat)), "CasselsTatePairing failed the parity check";
+    kernel := [v : v in Kernel(CTmat) | not IsZero(v)];
+    kernel_inds := [Index(S2elts, S2!Eltseq(v)) : v in kernel];
+    S2_4 := [S2elts[ii] : ii in kernel_inds];
+    TDCT := [TD[ii] : ii in kernel_inds];
+    return TDCT;
+end function;
+
 ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=true, NoEightDesc:=false, HyperE:=[], descent_no:=0)
     E := GetCurve(number, isogenous);
     if descent_no eq 0 then
-        if reg lt 135 then 
+        if (isogenous mod 3 eq 0 and reg lt 110) or (isogenous mod 3 ne 0 and reg lt 135) then 
             descent_no := 4;
         elif (not NoEightDesc and isogenous mod 3 eq 0 and reg lt 240) or (NoEightDesc and reg lt 240) then 
             descent_no := 6;
@@ -95,7 +124,7 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
         printf "Automatically selected descent depth: %o-descent\n", descent_no;
     end if;
     if #HyperE eq 0 then
-        HyperE := TwoDescent(E : RemoveTorsion := true);
+        HyperE := MyTwoDescent(E);
     end if;
     case descent_no:
         when 4:
@@ -146,13 +175,6 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
                     mapA := mapA cat [ m : m in mapA_gen ];
                 end if;
             end if;
-            HyperE_actual := [];
-            for HE in HyperE do
-                if #FourDescent(HE : RemoveTorsion) gt 0 then
-                    Append(~HyperE_actual, HE);
-                end if;
-            end for;
-            HyperE := HyperE_actual;
             P6 := [];
             index_2 := 1;
             index_3 := 1;
@@ -160,7 +182,9 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
             flag := false;
             while #P6 eq 0 do
                 if index_2 gt #HyperE then
-                    error "Exhausted all available covers in SixDescent loop.";
+                    bound := bound * 10;
+                    index_2 := 1;
+                    index_3 := 1;
                 end if;
                 while #P6 eq 0 do
                     if index_3 gt #Crv3 then break; end if;
@@ -168,6 +192,10 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
                     P6 := PointSearch(Crv, bound : OnlyOne := true);
                     index_3 := index_3 + 1;
                 end while;
+                if #P6 eq 0 and index_3 gt #Crv3 then
+                    index_2 := index_2 + 1;
+                    index_3 := 1;
+                end if;
             end while;
             winning_index := index_3 - 1;
             P3_internal := map6to3(Domain(map6to3) ! P6[1]);
@@ -401,7 +429,7 @@ ComputeGenerator := function(number, isogenous, descent_no : NoFullThreeDesc:=tr
         return [];
     end if;
     if descent_no eq 0 then
-        if reg lt 135 then 
+        if (isogenous mod 3 eq 0 and reg lt 110) or (isogenous mod 3 ne 0 and reg lt 135) then 
             descent_no := 4;
         elif (not NoEightDesc and isogenous mod 3 eq 0 and reg lt 240) or (NoEightDesc and reg lt 240) then 
             descent_no := 6;
@@ -414,7 +442,7 @@ ComputeGenerator := function(number, isogenous, descent_no : NoFullThreeDesc:=tr
     end if;
     TS_order := TSSize(E);
     printf "Tate-Shafarevich group has order %o\n", TS_order;
-    HyperE := TwoDescent(E : RemoveTorsion := true);
+    HyperE := MyTwoDescent(E);
     return ComputeGeneratorTS(number, isogenous, reg : NoFullThreeDesc:=NoFullThreeDesc, NoEightDesc:=NoEightDesc, HyperE:=HyperE, descent_no:=descent_no);
 end function;
 
@@ -463,7 +491,7 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
     if #gens eq rank then
         return SaturateGeneratorFull(number, isogenous, gens);
     end if;
-    HyperE := TwoDescent(E : RemoveTorsion := true, RemoveGens := gens);
+    HyperE := MyTwoDescent(E : RemoveGens := gens);
     for HE in HyperE do
         Ps := RationalPoints(HE : Bound := 162755);
         if #Ps gt 0 then
@@ -475,8 +503,10 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
         end if;
     end for;
     Crv4 := [];
-    for a in [1..3] do // try three times
-        HyperE := TwoDescent(E : RemoveTorsion := true, RemoveGens := gens);
+    lim_4desc := 3;
+    if isogenous mod 3 eq 0 then lim_4desc := 1; end if;
+    for a in [1..lim_4desc] do // try three times
+        HyperE := MyTwoDescent(E : RemoveGens := gens);
         Crv4 := [];
         for HE in HyperE do
             Crv4 := Crv4 cat FourDescent(HE : RemoveTorsion := true, RemoveGensEC := gens);
@@ -506,9 +536,9 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
                 Append(~Crvs4, Crv4[i]);
             end if;
         end for;
-        index := 1;
         P8 := [];
         for bound in [10^11, 10^15] do
+            index := 1;
             while #P8 eq 0 do
                 if index gt #Crvs8 then break; end if;
                 P8 := PointSearch(Crvs8[index], bound : OnlyOne := true);
@@ -557,13 +587,14 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
         comps := Components(maps3[parent_C3[index]]);
         if #comps le 1 then
             PE := maps3[parent_C3[index]](P3_internal);
-            assert PE in E;
+            printf "Found rational point %o\n", Eltseq(PE)[1..2];
             gens := Saturation(gens cat [PE], 1000 : TorsionFree := true);
         else
             P3_fixed := Domain(comps[1]) ! Eltseq(P3_internal);
             P_intermediate := comps[1](P3_fixed);
             P_intermediate_fixed := Domain(comps[2]) ! Eltseq(P_intermediate);
             PE := comps[2](P_intermediate_fixed);
+            printf "Found rational point %o\n", Eltseq(PE)[1..2];
             gens := Saturation(gens cat [PE], 1000 : TorsionFree := true);
         end if;
         return ComputeGeneratorFull(number, isogenous, rank : known_gens:=gens, NoFullThreeDesc:=NoFullThreeDesc, NoEightDesc:=NoEightDesc);
@@ -598,7 +629,9 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
     index := index - 1;
     P4 := maps12[index](P12[1]);
     A, mapA := AssociatedEllipticCurve(Codomain(maps12[index]) : E := E);
-    gens := Saturation(gens cat [mapA(P4)], 1000 : TorsionFree := true);
+    P := mapA(P4);
+    printf "Found rational point %o\n", Eltseq(P)[1..2];
+    gens := Saturation(gens cat [P], 1000 : TorsionFree := true);
     return ComputeGeneratorFull(number, isogenous, rank : known_gens:=gens, NoFullThreeDesc:=NoFullThreeDesc, NoEightDesc:=NoEightDesc);
 end function;
 
