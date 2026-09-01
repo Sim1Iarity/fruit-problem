@@ -21,8 +21,8 @@ $$
 
 ## Completeness
 - Range of the database: 1 - 100,000
-- Completed data: 68,055 / 100,000 (68.06%)
-- Saturated: yes
+- Completed data: 76,030 / 100,000 (76.03%)
+- Saturated: 10,000 / 100,000 (10.00%)
 - Verification against 2-Selmer group bounds: 5,000 / 100,000 (5.00%)
 
 ## File Structure
