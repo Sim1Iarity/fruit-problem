@@ -577,10 +577,18 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
     end for;
     P6 := [];
     index := 1;
-    while #P6 eq 0 and index le #Crvs6 do
-        P6 := PointSearch(Crvs6[index], 10^8 : OnlyOne); // takes 5 sec each
-        index := index + 1;
-    end while;
+    for bound in [10^8, 10^11] do
+        while #P6 eq 0 and index le #Crvs6 do
+            P6 := PointSearch(Crvs6[index], bound : OnlyOne);
+            index := index + 1;
+        end while;
+        if #P6 gt 0 then
+            break;
+        end if;
+        if index gt #Crvs6 then
+            index := 1;
+        end if;
+    end for;
     if #P6 gt 0 then
         index := index - 1;
         P3_internal := maps6[index](P6[1]);
@@ -656,5 +664,6 @@ SetVerbose("NineDescent", 2);
 SetVerbose("QISearch", 1);
 SetVerbose("Selmer", 2);
 SetVerbose("Conic", 2);
+SetVerbose("Minimisation", 1);
 SetColumns(0);
 SetDefaultRealField(RealField(1000));
