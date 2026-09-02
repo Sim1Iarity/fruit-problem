@@ -109,6 +109,31 @@ MyTwoDescent := function(E : RemoveGens:=[])
     return TDCT;
 end function;
 
+MyThreeDescent := function(number, isogenous : NoMap:=false, HighRank:=false)
+    if isogenous mod 3 eq 0 then
+        return ThreeDescent(GetCurve(number, isogenous));
+    end if;
+    E := GetCurve(number, isogenous);
+    E_phi := GetCurve(number, isogenous * 3);
+    if NoMap and not HighRank then
+        _, _, Crv3 := pIsogenyDescent(E_phi, 3);
+        if #Crv3 gt 0 then return Crv3; end if;
+    end if;
+    Crv3, map3, Crv3_phi, map3_phi, isog := ThreeIsogenyDescent(E);
+    map3 := [m * DualIsogeny(isog) : m in map3];
+    for i in [1..#Crv3_phi] do
+        try
+            C3, m3 := pIsogenyDescent(Crv3_phi[i], E, E_phi);
+            Crv3 := Crv3 cat C3;
+            map3 := map3 cat [m * map3_phi[i] : m in m3];
+        catch e
+            ;
+        end try;
+    end for;
+    if #Crv3 gt 0 then return Crv3, map3; end if;
+    return ThreeDescent(E);
+end function;
+
 ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=true, NoEightDesc:=false, HyperE:=[], descent_no:=0)
     E := GetCurve(number, isogenous);
     if descent_no eq 0 then
@@ -161,20 +186,7 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
             A, mapA := AssociatedEllipticCurve(Crvs4[index] : E := E);
             P := Saturation([mapA(Ps[1])], 1000 : TorsionFree := true)[1];
         when 6:
-            if isogenous mod 3 eq 0 then
-                Crv3_isog, mapA_isog := ThreeDescent(E);
-                Crv3 := [ c : c in Crv3_isog ];
-                mapA := [ m : m in mapA_isog ];
-            else
-                Crv3_isog, mapA_isog, _, _, isog := ThreeIsogenyDescent(E);
-                Crv3 := [ c : c in Crv3_isog ];
-                mapA := [ m * DualIsogeny(isog) : m in mapA_isog ];
-                if #Crv3 eq 0 or not NoFullThreeDesc then
-                    Crv3_gen, mapA_gen := ThreeDescent(E);
-                    Crv3 := Crv3 cat [ c : c in Crv3_gen ];
-                    mapA := mapA cat [ m : m in mapA_gen ];
-                end if;
-            end if;
+            Crv3, mapA := MyThreeDescent(number, isogenous);
             P6 := [];
             index_2 := 1;
             index_3 := 1;
@@ -280,14 +292,7 @@ ComputeGeneratorTS_worker := function(number, isogenous, reg : NoFullThreeDesc:=
                 A, mapA := AssociatedEllipticCurve(Crvs4[index - 1] : E := E);
                 P := Saturation([mapA(Ps[1])], 1000 : TorsionFree := true)[1];
             else
-                if isogenous mod 3 eq 0 then
-                    Crvs3 := ThreeDescent(E);
-                else
-                    Crvs3 := ThreeIsogenyDescent(E);
-                    if #Crvs3 eq 0 or not NoFullThreeDesc then
-                        Crvs3 := Crvs3 cat ThreeDescent(E);
-                    end if;
-                end if;
+                Crvs3 := MyThreeDescent(number, isogenous : NoMap);
                 Crvs12 := [];
                 maps12 := [];
                 for Crv3 in Crvs3 do
@@ -556,7 +561,7 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
         Crvs4 := Crv4;
     end if;
     // 4-descent fails to find a point
-    Crvs3, maps3 := ThreeDescent(E);
+    Crvs3, maps3 := MyThreeDescent(E : HighRank);
     Crvs6 := [];
     maps6 := [];
     parent_C3 := [];
@@ -577,10 +582,18 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
     end for;
     P6 := [];
     index := 1;
-    while #P6 eq 0 and index le #Crvs6 do
-        P6 := PointSearch(Crvs6[index], 10^8 : OnlyOne); // takes 5 sec each
-        index := index + 1;
-    end while;
+    for bound in [10^8, 10^11] do
+        while #P6 eq 0 and index le #Crvs6 do
+            P6 := PointSearch(Crvs6[index], bound : OnlyOne);
+            index := index + 1;
+        end while;
+        if #P6 gt 0 then
+            break;
+        end if;
+        if index gt #Crvs6 then
+            index := 1;
+        end if;
+    end for;
     if #P6 gt 0 then
         index := index - 1;
         P3_internal := maps6[index](P6[1]);
@@ -656,5 +669,6 @@ SetVerbose("NineDescent", 2);
 SetVerbose("QISearch", 1);
 SetVerbose("Selmer", 2);
 SetVerbose("Conic", 2);
+SetVerbose("Minimisation", 1);
 SetColumns(0);
 SetDefaultRealField(RealField(1000));
