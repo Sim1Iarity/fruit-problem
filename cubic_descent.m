@@ -561,7 +561,7 @@ ComputeGeneratorFull := function(number, isogenous, rank : known_gens:=[], NoFul
         Crvs4 := Crv4;
     end if;
     // 4-descent fails to find a point
-    Crvs3, maps3 := MyThreeDescent(E : HighRank);
+    Crvs3, maps3 := MyThreeDescent(number, isogenous : HighRank);
     Crvs6 := [];
     maps6 := [];
     parent_C3 := [];
