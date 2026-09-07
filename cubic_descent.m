@@ -264,7 +264,7 @@ ComputeGeneratorTS := function(number, isogenous, reg : TwoPowerDescOnly:=false,
             print "Doing preliminary PointsQI's...\n";
             while #Ps eq 0 do
                 if index gt #Crvs4 then break; end if;
-                Ps := PointsQI(Crvs4[index], Min(10^8, Max(10^5, Round(10^(reg / 80 + 2)))) : OnlyOne := true);
+                Ps := PointsQI(Crvs4[index], Min(10^8, Max(10^5, Round(10^(reg / 400 + 2)))) : OnlyOne := true);
                 index := index + 1;
             end while;
             if #Ps gt 0 then
@@ -315,7 +315,7 @@ ComputeGeneratorTS := function(number, isogenous, reg : TwoPowerDescOnly:=false,
             print "Doing preliminary PointsQI's...\n";
             while #Ps eq 0 do
                 if index gt #Crvs4 then break; end if;
-                Ps := PointsQI(Crvs4[index], Min(10^8, Max(10^5, Round(10^(reg / 80 + 2)))) : OnlyOne := true);
+                Ps := PointsQI(Crvs4[index], Min(10^8, Max(10^5, Round(10^(reg / 400 + 2)))) : OnlyOne := true);
                 index := index + 1;
             end while;
             if #Ps gt 0 then
@@ -375,8 +375,16 @@ ComputeGeneratorTS := function(number, isogenous, reg : TwoPowerDescOnly:=false,
     return Eltseq(P_final)[1..2];
 end function;
 TSSize := function(number, isogenous)
-    HyperE := TwoDescent(GetCurve(number, isogenous) : RemoveTorsion := true);
-    TS_order := (#HyperE + 1) / 2;
+    Sel4_size := #FourDescent(GetCurve(number, isogenous));
+    if Sel4_size eq 1 then
+        TS_order := 1;
+    elif Sel4_size eq 4 then
+        TS_order := 4;
+    elif Sel4_size eq 28 then
+        TS_order := 16;
+    else
+        error "Too many 4-covers (%o)!!!", Sel4_size;
+    end if;
     Crv3, mapA := MyThreeDescent(number, isogenous);
     if isogenous mod 3 eq 0 then
         TS_order := TS_order * (2 * #Crv3 + 1) / 3;
